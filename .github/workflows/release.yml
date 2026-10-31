@@ -1,0 +1,47 @@
+# Push a tag like v0.2.0 -> builds the Windows installers and publishes them as a GitHub release.
+# The launcher's auto-updater reads that release, so the tag must match "version" in src-tauri/tauri.conf.json.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check tag matches app version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $v = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} does not match tauri.conf.json version $v" }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'LAVA SE Launcher ${{ github.ref_name }}'
+          releaseBody: 'Windows 설치 파일: `-setup.exe` (권장) 또는 `.msi`. 이미 설치했다면 런처가 시작할 때 자동으로 업데이트합니다.'
+          releaseDraft: false
+          prerelease: false
