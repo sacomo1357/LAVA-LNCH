@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api, type UpdateInfo } from '../api'
 import { state, toast } from '../store'
-import { t } from '../i18n'
+import { pickNotes, t } from '../i18n'
 import ProgressLine from './ProgressLine.vue'
 
 const props = defineProps<{ info: UpdateInfo }>()
@@ -49,7 +49,7 @@ function later() {
         <span class="arrow">→</span>
         <span class="tag">v{{ info.latest }}</span>
       </div>
-      <pre v-if="info.notes" class="notes">{{ info.notes }}</pre>
+      <pre v-if="pickNotes(info.notes)" class="notes">{{ pickNotes(info.notes) }}</pre>
 
       <template v-if="installing">
         <ProgressLine />

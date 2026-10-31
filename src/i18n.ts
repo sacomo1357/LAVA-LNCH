@@ -48,6 +48,19 @@ function lookup(table: unknown, key: string): string | undefined {
   return typeof v === 'string' && v ? v : undefined
 }
 
+/**
+ * Release notes can carry one block per language, each starting with a marker like
+ * <!-- en --> (invisible on GitHub). Returns the current language's block, else ko's,
+ * else the whole text for notes without markers.
+ */
+export function pickNotes(text: string): string {
+  const parts = text.split(/<!--\s*(ko|en|cn|jp)\s*-->/)
+  if (parts.length < 3) return parts[0].trim()
+  const by: Record<string, string> = {}
+  for (let i = 1; i < parts.length; i += 2) by[parts[i]] = parts[i + 1].trim()
+  return by[lang.value] || by.ko || parts[0].trim()
+}
+
 /** Text for `key` in the current language, with `{name}` placeholders filled from `params`. */
 export function t(key: string, params?: Record<string, string | number>): string {
   const s = lookup(tables[lang.value], key) ?? lookup(ko, key) ?? key

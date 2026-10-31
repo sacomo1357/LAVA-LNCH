@@ -41,7 +41,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'LAVA SE Launcher ${{ github.ref_name }}'
-          releaseBody: 'Windows 설치 파일: `-setup.exe` (권장) 또는 `.msi`. 이미 설치했다면 런처가 시작할 때 자동으로 업데이트합니다.'
+          releaseName: 'LAVA LNCH ${{ github.ref_name }}'
+          # One block per language; the site and the launcher show the block for the reader's language
+          releaseBody: |
+            <!-- ko -->
+            Windows 설치 파일: `-setup.exe` (권장) 또는 `.msi`. 이미 설치했다면 런처가 시작할 때 자동으로 업데이트합니다.
+            <!-- en -->
+            Windows installers: `-setup.exe` (recommended) or `.msi`. If the launcher is already installed, it updates itself when it starts.
+            <!-- cn -->
+            Windows 安装文件：`-setup.exe`（推荐）或 `.msi`。如果已经安装，启动器会在启动时自动更新。
+            <!-- jp -->
+            Windows インストーラー: `-setup.exe`（推奨）または `.msi`。インストール済みの場合は、ランチャーの起動時に自動でアップデートされます。
           releaseDraft: false
           prerelease: false
