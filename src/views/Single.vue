@@ -5,6 +5,7 @@ import { background, guard, play, state } from '../store'
 import PxIcon from '../components/PxIcon.vue'
 import ProgressLine from '../components/ProgressLine.vue'
 import ProfileManager from '../components/ProfileManager.vue'
+import { t } from '../i18n'
 
 const instances = ref<Instance[]>([])
 const menu = ref(false)
@@ -42,9 +43,9 @@ const loaderLabel = (p: Instance) => (p.loader === 'fabric' ? 'Fabric' : 'Vanill
 <template>
   <div class="scene" :style="{ backgroundImage: `url(${background()})` }" @click="menu = false">
     <div class="hero">
-      <h1>{{ current ? current.name.replace(/_/g, ' ') : 'LAVA SE' }}</h1>
-      <p v-if="current">Minecraft {{ current.mc }} · {{ loaderLabel(current) }}<template v-if="current.kind === 'preset'"> · Lava 프리셋</template></p>
-      <p v-else>프로필을 만들고 바로 플레이하세요.</p>
+      <h1>{{ current ? current.name.replace(/_/g, ' ') : 'LAVA LNCH' }}</h1>
+      <p v-if="current">Minecraft {{ current.mc }} · {{ loaderLabel(current) }}<template v-if="current.kind === 'preset'"> · {{ t('single.presetTag') }}</template></p>
+      <p v-else>{{ t('single.empty') }}</p>
     </div>
 
     <div class="play-panel" @click.stop>
@@ -52,8 +53,8 @@ const loaderLabel = (p: Instance) => (p.loader === 'fabric' ? 'Fabric' : 'Vanill
         <div class="picker">
           <button :disabled="busy" @click="menu = !menu">
             <div style="min-width: 0">
-              <div class="small muted">프로필</div>
-              <div class="pk-name">{{ current ? current.name : '프로필 없음' }}</div>
+              <div class="small muted">{{ t('single.profile') }}</div>
+              <div class="pk-name">{{ current ? current.name : t('single.noProfile') }}</div>
             </div>
             <span v-if="current" class="tag cool">{{ current.mc }}</span>
             <span class="caret">▲</span>
@@ -64,12 +65,12 @@ const loaderLabel = (p: Instance) => (p.loader === 'fabric' ? 'Fabric' : 'Vanill
               <span class="tag cool">{{ p.mc }}</span>
               <span v-if="p.loader === 'fabric'" class="tag cool">FABRIC</span>
             </button>
-            <button class="pk-item add" @click="openManager(true)"><PxIcon name="plus" :size="12" /> 새 프로필 만들기</button>
+            <button class="pk-item add" @click="openManager(true)"><PxIcon name="plus" :size="12" /> {{ t('profile.newTitle') }}</button>
           </div>
         </div>
-        <button class="btn icon-btn" title="프로필 구성" :disabled="busy" @click="openManager(false)"><PxIcon name="gear" /></button>
+        <button class="btn icon-btn" :title="t('single.configure')" :disabled="busy" @click="openManager(false)"><PxIcon name="gear" /></button>
         <button class="btn primary play-btn" :disabled="busy" @click="launch">
-          <PxIcon name="play" :size="14" />{{ state.playing ? '실행 중' : current ? 'PLAY' : '만들기' }}
+          <PxIcon name="play" :size="14" />{{ state.playing ? t('common.running') : current ? t('common.play') : t('common.create') }}
         </button>
       </div>
       <ProgressLine />

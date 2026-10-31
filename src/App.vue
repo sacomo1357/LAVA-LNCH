@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { api, type UpdateInfo } from './api'
 import { guard, initEvents, loadSettings, state, type Tab } from './store'
+import { t } from './i18n'
 import AuthCard from './components/AuthCard.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
 import PxIcon from './components/PxIcon.vue'
@@ -10,12 +11,7 @@ import Multi from './views/Multi.vue'
 import Skin from './views/Skin.vue'
 import Setting from './views/Setting.vue'
 
-const tabs: { id: Tab; label: string }[] = [
-  { id: 'single', label: 'Single' },
-  { id: 'multi', label: 'Multi' },
-  { id: 'skin', label: 'Skin' },
-  { id: 'setting', label: 'Setting' },
-]
+const tabs: Tab[] = ['single', 'multi', 'skin', 'setting']
 const account = computed(() => state.settings?.account ?? null)
 
 const update = ref<UpdateInfo | null>(null)
@@ -32,18 +28,18 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="!state.settings" class="auth-wrap muted">Loading...</div>
+  <div v-if="!state.settings" class="auth-wrap muted">{{ t('app.loading') }}</div>
   <AuthCard v-else-if="!account" />
   <div v-else class="app" :class="{ collapsed: state.collapsed }">
     <aside class="side">
       <div class="side-brand">
         <img src="/favicon.svg" alt="" />
-        <span class="side-label">LAVA SE</span>
+        <span class="side-label">LAVA LNCH</span>
       </div>
       <nav class="side-nav">
-        <button v-for="t in tabs" :key="t.id" class="side-item" :class="{ active: state.tab === t.id }" :title="t.label" @click="state.tab = t.id">
-          <PxIcon :name="t.id" />
-          <span class="side-label">{{ t.label }}</span>
+        <button v-for="id in tabs" :key="id" class="side-item" :class="{ active: state.tab === id }" :title="t('tab.' + id)" @click="state.tab = id">
+          <PxIcon :name="id" />
+          <span class="side-label">{{ t('tab.' + id) }}</span>
         </button>
       </nav>
       <div class="side-foot">
@@ -51,12 +47,12 @@ onMounted(async () => {
           <span class="avatar">{{ account.name.slice(0, 1).toUpperCase() }}</span>
           <span class="side-label">
             <b>{{ account.name }}</b><br />
-            <span class="small muted">{{ account.kind === 'microsoft' ? 'Microsoft' : '오프라인' }}</span>
+            <span class="small muted">{{ account.kind === 'microsoft' ? 'Microsoft' : t('common.offline') }}</span>
           </span>
         </button>
-        <button class="side-item toggle" :title="state.collapsed ? '펼치기' : '접기'" @click="state.collapsed = !state.collapsed">
+        <button class="side-item toggle" :title="state.collapsed ? t('app.expand') : t('app.collapse')" @click="state.collapsed = !state.collapsed">
           <span class="chev">{{ state.collapsed ? '»' : '«' }}</span>
-          <span class="side-label">접기</span>
+          <span class="side-label">{{ t('app.collapse') }}</span>
         </button>
       </div>
     </aside>
@@ -70,7 +66,7 @@ onMounted(async () => {
 
     <div v-if="state.showLog" class="modal-back" @click.self="state.showLog = false">
       <div class="modal card wide" style="max-width: 1000px">
-        <div class="card-head"><h2>게임 로그</h2><span class="spacer"></span><button class="btn sm" @click="state.showLog = false">닫기</button></div>
+        <div class="card-head"><h2>{{ t('app.gameLog') }}</h2><span class="spacer"></span><button class="btn sm" @click="state.showLog = false">{{ t('common.close') }}</button></div>
         <div class="log">{{ state.log.join('\n') }}</div>
       </div>
     </div>

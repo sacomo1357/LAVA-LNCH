@@ -1,4 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
+import { t } from './i18n'
 
 export interface Account {
   kind: 'offline' | 'microsoft'
@@ -85,7 +86,7 @@ const mocks: Record<string, (a: any) => unknown> = {
   skin_list: () => mockSkins.map((s) => ({ ...s })),
   skin_add: (a) => { const e = { id: Date.now().toString(16), name: a.name, variant: a.variant, added: 0, png_b64: a.pngB64 }; mockSkins.push(e); return e },
   skin_delete: (a) => { mockSkins.splice(mockSkins.findIndex((s) => s.id === a.id), 1) },
-  skin_apply: () => '적용했습니다 (미리보기)',
+  skin_apply: () => t('store.previewApplied'),
   bg_get: () => null,
   builtin_client_id: () => false,
   update_default_repo: () => 'sacomo1357/LAVA-LNCH',
@@ -104,7 +105,7 @@ export async function call<T>(cmd: string, args?: Record<string, unknown>): Prom
   if (!inTauri) {
     const m = mocks[cmd]
     if (m) return m(args ?? {}) as T
-    throw '브라우저 미리보기에서는 사용할 수 없습니다'
+    throw t('store.previewOnly')
   }
   return tauriInvoke<T>(cmd, args)
 }

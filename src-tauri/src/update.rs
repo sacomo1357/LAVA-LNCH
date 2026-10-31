@@ -71,7 +71,7 @@ pub struct UpdateInfo {
 fn repo_for(app: &AppHandle) -> R<(String, String)> {
     let s = settings::load(app);
     let raw = if s.update_repo.trim().is_empty() { default_repo() } else { s.update_repo.clone() };
-    parse_repo(&raw).ok_or_else(|| format!("업데이트 저장소 주소가 올바르지 않습니다: {raw}"))
+    parse_repo(&raw).ok_or_else(|| tf("err.repoInvalid", &[("repo", &raw)]))
 }
 
 #[tauri::command]
@@ -85,7 +85,7 @@ pub async fn update_check(app: AppHandle) -> R<UpdateInfo> {
         .await
         .map_err(err)?;
     if r.status().as_u16() == 404 {
-        return Err(format!("{owner}/{repo}에 아직 릴리즈가 없습니다"));
+        return Err(tf("err.noRelease", &[("repo", &format!("{owner}/{repo}"))]));
     }
     let v: Value = r.error_for_status().map_err(err)?.json().await.map_err(err)?;
     let latest = v["tag_name"].as_str().unwrap_or("").trim_start_matches(['v', 'V']).to_string();
@@ -118,25 +118,25 @@ fn ps_quote(s: &str) -> String {
 pub async fn update_install(app: AppHandle) -> R<()> {
     let info = update_check(app.clone()).await?;
     if !info.available {
-        return Err("이미 최신 버전입니다".into());
+        return Err(t("err.upToDate"));
     }
     if !info.can_install {
-        return Err("개발 빌드에서는 자동 설치를 하지 않습니다".into());
+        return Err(t("err.devBuild"));
     }
     if !safe_name(&info.asset_name) || !info.asset_url.starts_with("https://") {
-        return Err("릴리즈 파일 정보가 올바르지 않습니다".into());
+        return Err(t("err.badAsset"));
     }
     let dest = root(&app).join("updates").join(&info.asset_name);
     let _ = std::fs::remove_file(&dest);
     let prog = Prog::new(&app);
-    prog.stage(&format!("v{} 다운로드 중", info.latest));
+    prog.stage(&tf("stage.updateDownload", &[("version", &info.latest)]));
     let r = download_all(vec![Item { url: info.asset_url.clone(), dest: dest.clone(), sha1: None }], &prog, 1).await;
     prog.finish();
     r?;
     let got = std::fs::metadata(&dest).map(|m| m.len()).unwrap_or(0);
     if info.size > 0 && got != info.size {
         let _ = std::fs::remove_file(&dest);
-        return Err(format!("다운로드가 완전하지 않습니다 ({got}/{} bytes)", info.size));
+        return Err(tf("err.incomplete", &[("got", &got), ("size", &info.size)]));
     }
 
     // Wait for this launcher to exit, install quietly, then start the new version.
@@ -158,7 +158,7 @@ pub async fn update_install(app: AppHandle) -> R<()> {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x08000000);
     }
-    cmd.spawn().map_err(|e| format!("설치 프로그램을 실행하지 못했습니다: {e}"))?;
+    cmd.spawn().map_err(|e| tf("err.installerFail", &[("detail", &e)]))?;
     app.exit(0);
     Ok(())
 }

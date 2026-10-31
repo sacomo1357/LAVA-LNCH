@@ -109,14 +109,14 @@ fn extract(zip_path: &Path, dest: &Path) -> R<()> {
 
 pub async fn install_temurin(app: &AppHandle, major: u32, prog: &Prog) -> R<PathBuf> {
     let dir = root(app).join("runtime").join(major.to_string());
-    prog.stage(&format!("Downloading Java {major} (Temurin)"));
+    prog.stage(&tf("stage.javaDownload", &[("major", &major)]));
     let url = format!(
         "https://api.adoptium.net/v3/binary/latest/{major}/ga/windows/x64/jre/hotspot/normal/eclipse"
     );
     let zip = dir.join("jre.zip");
     let _ = tokio::fs::remove_file(&zip).await;
     download(&Item { url, dest: zip.clone(), sha1: None }).await?;
-    prog.stage("Extracting Java");
+    prog.stage(&t("stage.javaExtract"));
     let (z, d) = (zip.clone(), dir.clone());
     tokio::task::spawn_blocking(move || extract(&z, &d)).await.map_err(err)??;
     let _ = tokio::fs::remove_file(&zip).await;
@@ -135,7 +135,7 @@ pub async fn ensure(app: &AppHandle, configured: &str, major: u32, prog: &Prog) 
             }
         }
     }
-    prog.stage("Looking for Java");
+    prog.stage(&t("stage.javaFind"));
     let mut found = detect(app).await;
     found.retain(|j| j.major >= major);
     if let Some(j) = found.first() {

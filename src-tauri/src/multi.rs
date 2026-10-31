@@ -46,7 +46,7 @@ fn parse_addr(s: &str) -> R<(String, u16)> {
         None => (s, 25565),
     };
     if host.is_empty() || !host.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-') {
-        return Err("서버 도메인을 입력하세요 (예: play.example.com)".into());
+        return Err(t("err.serverMissing"));
     }
     Ok((host.to_string(), port))
 }
@@ -76,7 +76,7 @@ async fn fetch_manifest(input: &str) -> R<(Manifest, String)> {
             Err(e) => last = format!("{u} -> {e}"),
         }
     }
-    Err(format!("서버 manifest를 불러오지 못했습니다 ({last})"))
+    Err(tf("err.manifestFail", &[("detail", &last)]))
 }
 
 /// Absolute http(s)/data URL for an icon or background, or "" if unusable.
@@ -106,7 +106,7 @@ fn server_inst(app: &AppHandle, address: &str, m: &Manifest, murl: &str) -> R<In
     let lv = match &m.loader {
         Some(l) if l.r#type.eq_ignore_ascii_case("fabric") => Some(l.version.clone()),
         Some(l) if l.r#type.eq_ignore_ascii_case("vanilla") => None,
-        Some(l) => return Err(format!("'{}' 로더는 아직 지원하지 않습니다 (Fabric만 지원)", l.r#type)),
+        Some(l) => return Err(tf("err.loaderUnsupported", &[("loader", &l.r#type)])),
         None => None,
     };
     if i.mc != m.minecraft_version || i.loader_version != lv.clone().unwrap_or_default() {
@@ -152,7 +152,7 @@ pub async fn multi_play(app: AppHandle, address: String) -> R<u32> {
     let prog = Prog::new(&app);
     let r = async {
         let (host, port) = parse_addr(&address)?;
-        prog.stage("서버 manifest 확인 중");
+        prog.stage(&t("stage.serverManifest"));
         let (m, murl) = fetch_manifest(&address).await?;
         let mut inst = server_inst(&app, &address, &m, &murl)?;
         let dir = inst_dir(&app, &inst.name);
@@ -168,7 +168,7 @@ pub async fn multi_play(app: AppHandle, address: String) -> R<u32> {
         }
 
         // remove files the server no longer lists, but only inside managed folders
-        prog.stage("오래된 파일 정리 중");
+        prog.stage(&t("stage.cleanup"));
         for d in MANAGED {
             let mut found = vec![];
             walk(&dir.join(d), &dir, &mut found);

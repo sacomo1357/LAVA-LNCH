@@ -12,6 +12,8 @@ use std::{
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::AsyncWriteExt;
 
+pub use crate::i18n::{t, tf};
+
 pub type R<T> = Result<T, String>;
 
 pub fn err<E: std::fmt::Display>(x: E) -> String {

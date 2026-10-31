@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { api, type JavaInfo, type Settings, type UpdateInfo } from '../api'
 import ProgressLine from '../components/ProgressLine.vue'
 import { background, guard, readDataUrl, state, toast } from '../store'
+import { LANGS, lang, t } from '../i18n'
 
 const s = ref<Settings>({ ...state.settings! })
 const javas = ref<JavaInfo[]>([])
@@ -26,13 +27,13 @@ async function save() {
   if (r) {
     state.settings = r
     s.value = { ...r }
-    toast('success', '설정을 저장했습니다')
+    toast('success', t('setting.saved'))
   }
 }
 async function install(major: number) {
-  toast('info', `Java ${major} 다운로드 중...`)
+  toast('info', t('setting.javaDownloading', { major }))
   const p = await guard(() => api.javaInstall(major))
-  if (p) { toast('success', `Java ${major} 설치 완료`); s.value.java_path = p; scan() }
+  if (p) { toast('success', t('setting.javaInstalled', { major })); s.value.java_path = p; scan() }
 }
 async function pickBg(file?: File) {
   if (!file) return
@@ -55,10 +56,10 @@ async function checkUpdate() {
   checking.value = true
   upd.value = (await guard(api.updateCheck)) ?? null
   checking.value = false
-  if (upd.value && !upd.value.available) toast('success', `최신 버전입니다 (v${upd.value.current})`)
+  if (upd.value && !upd.value.available) toast('success', t('setting.upToDate', { version: upd.value.current }))
 }
 async function installUpdate() {
-  toast('info', '업데이트를 다운로드합니다. 끝나면 런처가 다시 시작됩니다.')
+  toast('info', t('setting.updateDownloading'))
   await guard(api.updateInstall)
 }
 
@@ -73,117 +74,123 @@ async function logout() {
     <div class="framed">
       <div class="page">
         <div class="page-head">
-          <h1>Setting</h1>
+          <h1>{{ t('tab.setting') }}</h1>
           <span class="spacer"></span>
-          <span v-if="dirty" class="small" style="color: var(--warn)">저장하지 않은 변경 사항</span>
-          <button class="btn primary" :disabled="!dirty" @click="save">저장</button>
+          <span v-if="dirty" class="small" style="color: var(--warn)">{{ t('setting.unsaved') }}</span>
+          <button class="btn primary" :disabled="!dirty" @click="save">{{ t('common.save') }}</button>
         </div>
 
         <div class="set-grid">
           <section class="sect">
-            <h3>계정</h3>
+            <h3>{{ t('setting.account') }}</h3>
             <dl class="kv" style="margin: 0 0 12px">
-              <dt>이름</dt><dd>{{ account?.name }}</dd>
-              <dt>종류</dt><dd>{{ account?.kind === 'microsoft' ? 'Microsoft (정품)' : '오프라인' }}</dd>
+              <dt>{{ t('common.name') }}</dt><dd>{{ account?.name }}</dd>
+              <dt>{{ t('setting.kind') }}</dt><dd>{{ account?.kind === 'microsoft' ? t('setting.microsoftOwned') : t('common.offline') }}</dd>
             </dl>
             <div class="field">
-              <label>Microsoft 앱 (client) ID</label>
-              <input v-model="s.ms_client_id" placeholder="비워두면 내장된 LAVA LNCH ID 사용" />
-              <div class="hint">Azure 앱 "LAVA LNCH"의 애플리케이션 ID. 리디렉션 URI는 http://localhost:9876 (퍼블릭 클라이언트/네이티브)이어야 합니다. 바꾼 뒤 저장하고 다시 로그인하세요.</div>
+              <label>{{ t('setting.msClientId') }}</label>
+              <input v-model="s.ms_client_id" :placeholder="t('setting.msClientIdPlaceholder')" />
+              <div class="hint">{{ t('setting.msClientIdHint') }}</div>
             </div>
-            <button class="btn sm danger" @click="logout">로그아웃</button>
+            <button class="btn sm danger" @click="logout">{{ t('setting.logout') }}</button>
           </section>
 
           <section class="sect">
-            <h3>배경화면</h3>
+            <h3>{{ t('setting.background') }}</h3>
             <div class="bg-thumb" :style="{ backgroundImage: `url(${background()})` }"></div>
             <div class="row">
-              <button class="btn sm" @click="picker?.click()">이미지 변경</button>
-              <button class="btn sm" :disabled="!state.customBg" @click="resetBg">기본으로</button>
+              <button class="btn sm" @click="picker?.click()">{{ t('setting.changeImage') }}</button>
+              <button class="btn sm" :disabled="!state.customBg" @click="resetBg">{{ t('setting.resetImage') }}</button>
             </div>
             <input ref="picker" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden @change="pickBg(($event.target as HTMLInputElement).files?.[0])" />
-            <div class="hint small muted" style="margin-top: 8px">Single 화면과, 배경을 지정하지 않은 서버에 쓰입니다. 바로 적용됩니다.</div>
+            <div class="hint small muted" style="margin-top: 8px">{{ t('setting.bgHint') }}</div>
           </section>
 
           <section class="sect">
             <h3>Java</h3>
             <div class="field">
-              <label>Java 실행 파일</label>
-              <input v-model="s.java_path" placeholder="자동 (버전에 맞는 Java를 찾고 없으면 Temurin 설치)" />
+              <label>{{ t('setting.javaPath') }}</label>
+              <input v-model="s.java_path" :placeholder="t('setting.javaPathPlaceholder')" />
             </div>
             <div class="field">
-              <label>감지된 Java</label>
+              <label>{{ t('setting.javaDetected') }}</label>
               <select @change="s.java_path = ($event.target as HTMLSelectElement).value">
-                <option value="">{{ scanning ? '찾는 중...' : `${javas.length}개 발견 - 선택하세요` }}</option>
+                <option value="">{{ scanning ? t('setting.javaScanning') : t('setting.javaFound', { n: javas.length }) }}</option>
                 <option v-for="j in javas" :key="j.path" :value="j.path">Java {{ j.major }} ({{ j.version }}) - {{ j.path }}</option>
               </select>
             </div>
             <div class="row">
-              <button class="btn sm" @click="install(21)">Java 21 설치</button>
-              <button class="btn sm" @click="install(17)">Java 17 설치</button>
-              <button class="btn sm" @click="scan">다시 찾기</button>
+              <button class="btn sm" @click="install(21)">{{ t('setting.javaInstall', { major: 21 }) }}</button>
+              <button class="btn sm" @click="install(17)">{{ t('setting.javaInstall', { major: 17 }) }}</button>
+              <button class="btn sm" @click="scan">{{ t('setting.rescan') }}</button>
             </div>
-            <div class="hint small muted" style="margin-top: 8px">1.20.5 이상은 Java 21, 1.19 ~ 1.20.4는 Java 17이 필요합니다.</div>
+            <div class="hint small muted" style="margin-top: 8px">{{ t('setting.javaHint') }}</div>
           </section>
 
           <section class="sect">
-            <h3>메모리</h3>
+            <h3>{{ t('setting.memory') }}</h3>
             <div class="field">
-              <label class="row-between"><span>최소 (-Xms)</span><span class="range-val">{{ gb(s.ram_min) }}</span></label>
+              <label class="row-between"><span>{{ t('setting.ramMin') }}</span><span class="range-val">{{ gb(s.ram_min) }}</span></label>
               <input v-model.number="s.ram_min" type="range" min="512" max="16384" step="256" />
             </div>
             <div class="field">
-              <label class="row-between"><span>최대 (-Xmx)</span><span class="range-val">{{ gb(s.ram_max) }}</span></label>
+              <label class="row-between"><span>{{ t('setting.ramMax') }}</span><span class="range-val">{{ gb(s.ram_max) }}</span></label>
               <input v-model.number="s.ram_max" type="range" min="1024" max="32768" step="256" />
             </div>
             <div class="field">
-              <label>GC 프리셋</label>
+              <label>{{ t('setting.gcPreset') }}</label>
               <select v-model="s.jvm_preset">
-                <option value="none">없음 (JVM 기본값)</option>
-                <option value="aikar">Aikar's flags (G1GC, 추천)</option>
+                <option value="none">{{ t('setting.gcNone') }}</option>
+                <option value="aikar">{{ t('setting.gcAikar') }}</option>
                 <option value="zgc">ZGC</option>
                 <option value="shenandoah">Shenandoah</option>
               </select>
             </div>
             <div class="field">
-              <label>추가 JVM 인자</label>
+              <label>{{ t('setting.extraJvm') }}</label>
               <input v-model="s.extra_jvm" placeholder="-Dfoo=bar" />
             </div>
           </section>
 
           <section class="sect">
-            <h3>업데이트</h3>
+            <h3>{{ t('setting.update') }}</h3>
             <dl class="kv" style="margin: 0 0 12px">
-              <dt>현재 버전</dt><dd>v{{ upd?.current ?? '?' }}</dd>
-              <template v-if="upd"><dt>최신 릴리즈</dt><dd>v{{ upd.latest || '-' }} <span class="small muted">({{ upd.repo }})</span></dd></template>
+              <dt>{{ t('setting.currentVersion') }}</dt><dd>v{{ upd?.current ?? '?' }}</dd>
+              <template v-if="upd"><dt>{{ t('setting.latestRelease') }}</dt><dd>v{{ upd.latest || '-' }} <span class="small muted">({{ upd.repo }})</span></dd></template>
             </dl>
             <div class="field">
-              <label>릴리즈 저장소</label>
-              <input v-model="s.update_repo" :placeholder="defaultRepo ? `기본값: ${defaultRepo}` : 'owner/repo'" />
-              <div class="hint">GitHub "owner/repo" 또는 저장소 주소. 비워두면 기본값을 씁니다. 직접 만든 런처라면 여기를 바꾸세요.</div>
+              <label>{{ t('setting.releaseRepo') }}</label>
+              <input v-model="s.update_repo" :placeholder="defaultRepo ? t('setting.repoDefault', { repo: defaultRepo }) : 'owner/repo'" />
+              <div class="hint">{{ t('setting.repoHint') }}</div>
             </div>
-            <label class="check" style="margin-bottom: 12px"><input v-model="s.auto_update" type="checkbox" /> 시작할 때 업데이트 확인</label>
+            <label class="check" style="margin-bottom: 12px"><input v-model="s.auto_update" type="checkbox" /> {{ t('setting.autoUpdate') }}</label>
             <div class="row">
-              <button class="btn sm" :disabled="checking" @click="checkUpdate">{{ checking ? '확인 중...' : '지금 확인' }}</button>
-              <button v-if="upd?.available && upd.can_install" class="btn sm primary" :disabled="state.progress.active" @click="installUpdate">v{{ upd.latest }} 설치</button>
+              <button class="btn sm" :disabled="checking" @click="checkUpdate">{{ checking ? t('common.checking') : t('setting.checkNow') }}</button>
+              <button v-if="upd?.available && upd.can_install" class="btn sm primary" :disabled="state.progress.active" @click="installUpdate">{{ t('setting.installVersion', { version: upd.latest }) }}</button>
             </div>
-            <div v-if="upd?.available && !upd.can_install" class="hint small muted" style="margin-top: 8px">개발 빌드에서는 자동 설치를 하지 않습니다.</div>
+            <div v-if="upd?.available && !upd.can_install" class="hint small muted" style="margin-top: 8px">{{ t('setting.devBuild') }}</div>
             <div style="margin-top: 8px"><ProgressLine /></div>
           </section>
 
           <section class="sect">
-            <h3>런처</h3>
+            <h3>{{ t('setting.launcher') }}</h3>
             <div class="field">
-              <label>게임을 시작하면</label>
+              <label>{{ t('setting.language') }}</label>
+              <select v-model="lang">
+                <option v-for="l in LANGS" :key="l.id" :value="l.id">{{ l.label }}</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>{{ t('setting.onLaunch') }}</label>
               <select v-model="s.launcher_behavior">
-                <option value="hide">런처 숨기기 (게임 종료 시 다시 표시)</option>
-                <option value="keep">런처 유지 (게임 로그 확인 가능)</option>
-                <option value="close">런처 종료</option>
+                <option value="hide">{{ t('setting.behaviorHide') }}</option>
+                <option value="keep">{{ t('setting.behaviorKeep') }}</option>
+                <option value="close">{{ t('setting.behaviorClose') }}</option>
               </select>
             </div>
             <div class="row">
-              <button class="btn sm" @click="api.openFolder()">데이터 폴더 열기</button>
-              <button class="btn sm" :disabled="!state.log.length" @click="state.showLog = true">마지막 게임 로그</button>
+              <button class="btn sm" @click="api.openFolder()">{{ t('setting.openData') }}</button>
+              <button class="btn sm" :disabled="!state.log.length" @click="state.showLog = true">{{ t('setting.lastLog') }}</button>
             </div>
           </section>
         </div>

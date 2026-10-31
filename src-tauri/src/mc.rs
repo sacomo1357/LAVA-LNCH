@@ -145,7 +145,7 @@ pub async fn install(app: &AppHandle, mc: &str, loader: Option<&str>, prog: &Pro
     let root = root(app);
     let vjson = vd.join(mc).join(format!("{mc}.json"));
     if !vjson.exists() {
-        prog.stage("Fetching version manifest");
+        prog.stage(&t("stage.versionManifest"));
         let m = get_json(MANIFEST).await?;
         let url = m["versions"]
             .as_array()
@@ -159,7 +159,7 @@ pub async fn install(app: &AppHandle, mc: &str, loader: Option<&str>, prog: &Pro
         id = format!("fabric-loader-{lv}-{mc}");
         let p = vd.join(&id).join(format!("{id}.json"));
         if !p.exists() {
-            prog.stage("Fetching Fabric profile");
+            prog.stage(&t("stage.fabricProfile"));
             let prof = get_json(&format!("https://meta.fabricmc.net/v2/versions/loader/{mc}/{lv}/profile/json")).await?;
             write_json(&p, &prof)?;
         }
@@ -178,7 +178,7 @@ pub async fn install(app: &AppHandle, mc: &str, loader: Option<&str>, prog: &Pro
     let ai = &resolved["assetIndex"];
     let aid = ai["id"].as_str().ok_or("assetIndex missing")?;
     let idx_path = root.join("assets").join("indexes").join(format!("{aid}.json"));
-    prog.stage("Downloading libraries");
+    prog.stage(&t("stage.libraries"));
     download(&Item {
         url: ai["url"].as_str().unwrap_or_default().into(),
         dest: idx_path.clone(),
@@ -305,7 +305,7 @@ pub async fn launch(app: &AppHandle, cfg: LaunchCfg, prog: &Prog) -> R<u32> {
         .collect();
     let _ = std::fs::write(cfg.dir.join("launcher-args.txt"), shown.join("\n"));
 
-    prog.stage("Starting Minecraft");
+    prog.stage(&t("stage.starting"));
     let piped = st.launcher_behavior != "close";
     let mut cmd = tokio::process::Command::new(&java);
     cmd.args(&jvm)

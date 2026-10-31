@@ -78,3 +78,11 @@ Serve this at `https://<domain>/launcher/manifest.json` (also tried: `https://ap
 ## License notes
 
 The Galmuri pixel fonts in `public/fonts` are © Lee Minseo, under the SIL Open Font License 1.1 (`public/fonts/Galmuri-OFL.md`).
+
+## Languages
+
+The UI follows the OS language on first start (ko, en, cn = 中文, jp = 日本語; anything else gets en). Setting → 런처 → 언어 changes it.
+
+- **Text:** `lang/<lang>.json`, shared by the Vue UI (`src/i18n.ts`, `t('key', { name })`) and the Rust side (`src-tauri/src/i18n.rs`, `t` / `tf` for errors, progress and the login page).
+- `ko.json` is the master. Every key another file leaves out or leaves empty shows the Korean text, so a half-translated file is fine.
+- `{name}` placeholders are filled at run time; keep them as they are when translating.

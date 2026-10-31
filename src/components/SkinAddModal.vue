@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { api, type SkinEntry } from '../api'
 import { detectSlim } from '../pixel'
 import { guard, readDataUrl, toast } from '../store'
+import { t } from '../i18n'
 import SkinViewer from './SkinViewer.vue'
 
 const emit = defineEmits<{ added: [SkinEntry]; close: [] }>()
@@ -17,11 +18,11 @@ const picker = ref<HTMLInputElement>()
 
 async function take(file?: File) {
   if (!file) return
-  if (file.type !== 'image/png') return toast('error', '스킨은 PNG 파일이어야 합니다')
+  if (file.type !== 'image/png') return toast('error', t('skinAdd.notPng'))
   const url = await readDataUrl(file)
   const img = new Image()
   img.onload = () => {
-    if (img.width !== 64 || (img.height !== 64 && img.height !== 32)) return toast('error', '스킨 크기는 64x64 (또는 64x32)여야 합니다')
+    if (img.width !== 64 || (img.height !== 64 && img.height !== 32)) return toast('error', t('skinAdd.badSize'))
     src.value = url
     fileName.value = file.name
     slim.value = detectSlim(img)
@@ -44,29 +45,29 @@ async function save() {
     <form class="skin-modal card" @submit.prevent="save">
       <div class="preview"><SkinViewer :src="src" :slim="slim" /></div>
       <div class="form">
-        <h2>스킨 추가</h2>
+        <h2>{{ t('skinAdd.title') }}</h2>
         <div class="field">
-          <label>스킨 이름</label>
-          <input v-model="name" maxlength="32" placeholder="내 스킨" />
+          <label>{{ t('skinAdd.name') }}</label>
+          <input v-model="name" maxlength="32" :placeholder="t('skinAdd.namePlaceholder')" />
         </div>
         <div class="field">
-          <label>스킨 파일 (PNG, 64x64)</label>
+          <label>{{ t('skinAdd.file') }}</label>
           <div class="dropzone" :class="{ drag }" @click="picker?.click()" @dragover.prevent="drag = true" @dragleave="drag = false"
             @drop.prevent="drag = false; take($event.dataTransfer?.files[0])">
-            {{ fileName || 'PNG 파일을 끌어다 놓거나 클릭해서 고르세요' }}
+            {{ fileName || t('skinAdd.drop') }}
           </div>
           <input ref="picker" type="file" accept="image/png" hidden @change="take(($event.target as HTMLInputElement).files?.[0])" />
         </div>
         <div class="field">
-          <label>모델 <span class="small">(파일에서 자동 감지)</span></label>
+          <label>{{ t('skinAdd.model') }} <span class="small">{{ t('skinAdd.autoDetect') }}</span></label>
           <div class="seg" style="margin: 0">
             <button type="button" :class="{ on: !slim }" @click="slim = false">Classic (Steve)</button>
             <button type="button" :class="{ on: slim }" @click="slim = true">Slim (Alex)</button>
           </div>
         </div>
         <div class="foot">
-          <button type="button" class="btn" @click="emit('close')">취소</button>
-          <button class="btn primary" :disabled="!src || !name.trim() || saving">확인</button>
+          <button type="button" class="btn" @click="emit('close')">{{ t('common.cancel') }}</button>
+          <button class="btn primary" :disabled="!src || !name.trim() || saving">{{ t('common.ok') }}</button>
         </div>
       </div>
     </form>

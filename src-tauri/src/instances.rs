@@ -78,7 +78,7 @@ pub async fn create_instance(app: AppHandle, name: String, mc: String, fabric: b
         };
         save_inst(&app, &inst)?;
         if preset {
-            prog.stage("Installing performance mods");
+            prog.stage(&t("stage.presetMods"));
             let mut seen = HashSet::new();
             for slug in PRESET_MODS {
                 if let Err(e) = install_mod(&app, &inst, slug, &mut seen, &prog).await {
@@ -246,7 +246,7 @@ pub async fn modrinth_install(app: AppHandle, name: String, project_id: String) 
         return Err("This profile has no mod loader. Create a Fabric profile to use mods.".into());
     }
     let prog = Prog::new(&app);
-    prog.stage("Downloading mod");
+    prog.stage(&t("stage.mod"));
     let r = install_mod(&app, &inst, &project_id, &mut HashSet::new(), &prog).await;
     prog.finish();
     r

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api, type UpdateInfo } from '../api'
 import { state, toast } from '../store'
+import { t } from '../i18n'
 import ProgressLine from './ProgressLine.vue'
 
 const props = defineProps<{ info: UpdateInfo }>()
@@ -42,7 +43,7 @@ function later() {
 <template>
   <div class="modal-back">
     <div class="modal card update">
-      <h2>새 버전이 있습니다</h2>
+      <h2>{{ t('update.title') }}</h2>
       <div class="ver">
         <span class="tag cool">v{{ info.current }}</span>
         <span class="arrow">→</span>
@@ -52,13 +53,13 @@ function later() {
 
       <template v-if="installing">
         <ProgressLine />
-        <p class="small muted">다운로드가 끝나면 런처가 닫히고 설치 후 다시 열립니다.</p>
+        <p class="small muted">{{ t('update.restartHint') }}</p>
       </template>
-      <p v-else-if="left > 0" class="small muted">{{ left }}초 뒤 자동으로 업데이트합니다 ({{ mb }} MB).</p>
+      <p v-else-if="left > 0" class="small muted">{{ t('update.countdown', { sec: left, mb }) }}</p>
 
       <div class="foot">
-        <button class="btn" :disabled="installing" @click="later">나중에</button>
-        <button class="btn primary" :disabled="installing" @click="install">{{ installing ? '업데이트 중...' : '지금 업데이트' }}</button>
+        <button class="btn" :disabled="installing" @click="later">{{ t('update.later') }}</button>
+        <button class="btn primary" :disabled="installing" @click="install">{{ installing ? t('update.updating') : t('update.now') }}</button>
       </div>
     </div>
   </div>

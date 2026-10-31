@@ -72,12 +72,12 @@ pub async fn skin_get(app: AppHandle) -> R<SkinData> {
 fn check_skin(bytes: &[u8]) -> R<()> {
     let ok_png = bytes.len() < 1024 * 1024 && bytes.len() > 24 && bytes.starts_with(&[0x89, b'P', b'N', b'G']);
     if !ok_png {
-        return Err("스킨은 PNG 파일이어야 합니다".into());
+        return Err(t("err.skinPng"));
     }
     let w = u32::from_be_bytes(bytes[16..20].try_into().unwrap());
     let h = u32::from_be_bytes(bytes[20..24].try_into().unwrap());
     if w != 64 || (h != 64 && h != 32) {
-        return Err(format!("스킨 크기는 64x64 (또는 64x32)여야 합니다. 이 파일은 {w}x{h}입니다"));
+        return Err(tf("err.skinSize", &[("w", &w), ("h", &h)]));
     }
     Ok(())
 }
@@ -91,7 +91,7 @@ async fn apply(app: &AppHandle, bytes: Vec<u8>, variant: &str) -> R<String> {
         std::fs::create_dir_all(png.parent().unwrap()).map_err(err)?;
         std::fs::write(png, bytes).map_err(err)?;
         std::fs::write(var, variant).map_err(err)?;
-        return Ok("로컬에 적용했습니다. 오프라인 계정은 게임 안 스킨이 바뀌지 않습니다.".into());
+        return Ok(t("msg.skinLocal"));
     }
     let acc = auth::fresh_account(app).await?;
     let form = reqwest::multipart::Form::new().text("variant", variant).part(
@@ -106,9 +106,9 @@ async fn apply(app: &AppHandle, bytes: Vec<u8>, variant: &str) -> R<String> {
         .await
         .map_err(err)?;
     if !r.status().is_success() {
-        return Err(format!("Mojang이 스킨을 거부했습니다 ({})", r.status()));
+        return Err(tf("err.skinRejected", &[("status", &r.status())]));
     }
-    Ok("마인크래프트 계정에 스킨을 적용했습니다.".into())
+    Ok(t("msg.skinAccount"))
 }
 
 // ---- skin library ----
@@ -164,7 +164,7 @@ pub fn skin_add(app: AppHandle, name: String, png_b64: String, variant: String) 
     check_skin(&bytes)?;
     let name = name.trim();
     if name.is_empty() || name.chars().count() > 32 {
-        return Err("스킨 이름은 1-32자로 입력하세요".into());
+        return Err(t("err.skinName"));
     }
     let added = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
     let e = SkinEntry {
@@ -191,7 +191,7 @@ pub fn skin_delete(app: AppHandle, id: String) -> R<()> {
 
 #[tauri::command]
 pub async fn skin_apply(app: AppHandle, id: String) -> R<String> {
-    let e = lib_index(&app).into_iter().find(|e| e.id == id).ok_or("스킨을 찾을 수 없습니다")?;
+    let e = lib_index(&app).into_iter().find(|e| e.id == id).ok_or_else(|| t("err.skinNotFound"))?;
     let bytes = std::fs::read(lib_png(&app, &id)?).map_err(err)?;
     apply(&app, bytes, &e.variant).await
 }

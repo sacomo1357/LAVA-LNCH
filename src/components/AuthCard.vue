@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { api } from '../api'
 import { guard, state } from '../store'
+import { t } from '../i18n'
 
 const mode = ref<'offline' | 'microsoft'>('microsoft')
 const name = ref('')
@@ -37,39 +38,39 @@ function cancel() {
 <template>
   <div class="auth-wrap">
     <form class="card auth-card" @submit.prevent="mode === 'offline' ? offline() : microsoft()">
-      <div class="brand"><img src="/favicon.svg" alt="" /><span>LAVA SE</span></div>
-      <h2>로그인</h2>
+      <div class="brand"><img src="/favicon.svg" alt="" /><span>LAVA LNCH</span></div>
+      <h2>{{ t('auth.title') }}</h2>
       <div class="seg">
         <button type="button" :class="{ on: mode === 'microsoft' }" :disabled="waiting" @click="mode = 'microsoft'">Microsoft</button>
-        <button type="button" :class="{ on: mode === 'offline' }" :disabled="waiting" @click="mode = 'offline'">오프라인</button>
+        <button type="button" :class="{ on: mode === 'offline' }" :disabled="waiting" @click="mode = 'offline'">{{ t('common.offline') }}</button>
       </div>
 
       <template v-if="mode === 'offline'">
         <div class="field">
-          <label>플레이어 이름</label>
+          <label>{{ t('auth.playerName') }}</label>
           <input v-model="name" maxlength="16" placeholder="Steve" />
-          <div class="hint">오프라인 계정은 정품 인증 서버에 접속할 수 없습니다.</div>
+          <div class="hint">{{ t('auth.offlineHint') }}</div>
         </div>
-        <button class="btn primary" style="width: calc(100% - 6px)">계속</button>
+        <button class="btn primary" style="width: calc(100% - 6px)">{{ t('auth.continue') }}</button>
       </template>
 
       <template v-else-if="!waiting">
         <div v-if="!builtin" class="field">
-          <label>Azure 앱 (client) ID</label>
+          <label>{{ t('auth.clientId') }}</label>
           <input v-model="clientId" placeholder="00000000-0000-0000-0000-000000000000" />
-          <div class="hint">Azure 앱 "LAVA LNCH"의 애플리케이션(클라이언트) ID입니다. 리디렉션 URI는 http://localhost:9876 이어야 합니다.</div>
+          <div class="hint">{{ t('auth.clientIdHint') }}</div>
         </div>
-        <p v-else class="muted">브라우저에서 Microsoft 계정으로 로그인합니다.</p>
-        <button class="btn primary" :disabled="!builtin && !clientId.trim()" style="width: calc(100% - 6px)">Microsoft로 로그인</button>
+        <p v-else class="muted">{{ t('auth.browserLogin') }}</p>
+        <button class="btn primary" :disabled="!builtin && !clientId.trim()" style="width: calc(100% - 6px)">{{ t('auth.msLogin') }}</button>
       </template>
 
       <template v-else>
         <div class="code-box">
-          <div class="small muted">브라우저에서 Microsoft 로그인을 마치세요</div>
-          <div style="margin-top: 8px"><span class="pill starting">대기 중</span></div>
+          <div class="small muted">{{ t('auth.finishInBrowser') }}</div>
+          <div style="margin-top: 8px"><span class="pill starting">{{ t('auth.waiting') }}</span></div>
         </div>
-        <p class="small muted">로그인이 끝나면 자동으로 런처로 돌아옵니다. 브라우저가 열리지 않았다면 다시 시도하세요.</p>
-        <button type="button" class="btn" style="width: calc(100% - 6px)" @click="cancel">취소</button>
+        <p class="small muted">{{ t('auth.waitingHint') }}</p>
+        <button type="button" class="btn" style="width: calc(100% - 6px)" @click="cancel">{{ t('common.cancel') }}</button>
       </template>
     </form>
   </div>

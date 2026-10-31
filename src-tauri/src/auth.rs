@@ -30,7 +30,7 @@ pub fn auth_offline(app: AppHandle, name: String) -> R<Settings> {
     let name = name.trim().to_string();
     let ok = (3..=16).contains(&name.len()) && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
     if !ok {
-        return Err("이름은 3-16자의 영문, 숫자, _만 쓸 수 있습니다".into());
+        return Err(t("err.nameInvalid"));
     }
     let mut s = settings::load(&app);
     s.account = Some(Account {
@@ -79,7 +79,7 @@ async fn bind() -> R<Vec<TcpListener>> {
         }
         tokio::time::sleep(Duration::from_millis(200)).await;
     }
-    Err(format!("{PORT} 포트를 열 수 없습니다. 다른 프로그램이 쓰고 있는지 확인하세요 ({last})"))
+    Err(tf("err.portBusy", &[("port", &PORT), ("detail", &last)]))
 }
 
 async fn accept(ls: &[TcpListener]) -> std::io::Result<TcpStream> {
@@ -99,14 +99,15 @@ fn escape(s: &str) -> String {
 
 async fn reply(mut sock: TcpStream, status: &str, title: &str, msg: &str, ok: bool) {
     let body = format!(
-        r#"<!doctype html><html lang="ko"><meta charset="utf-8"><title>LAVA LNCH</title>
+        r#"<!doctype html><html lang="{lang}"><meta charset="utf-8"><title>LAVA LNCH</title>
 <body style="margin:0;height:100vh;display:grid;place-items:center;background:#0f1115;color:#e6e8ee;font-family:'Segoe UI','Malgun Gothic',sans-serif">
 <div style="text-align:center;padding:32px 40px;background:#1b1f27;box-shadow:0 0 0 3px #343b4d,6px 6px 0 3px rgba(0,0,0,.3)">
 <div style="font-weight:700;letter-spacing:.16em;color:#ff6a2b;margin-bottom:14px">LAVA LNCH</div>
 <h2 style="margin:0 0 8px;color:{}">{}</h2><p style="margin:0;color:#8b93a7">{}</p></div></body></html>"#,
         if ok { "#3ccf91" } else { "#ff5c5c" },
         escape(title),
-        escape(msg)
+        escape(msg),
+        lang = crate::i18n::html_lang()
     );
     let head = format!(
         "HTTP/1.1 {status}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
@@ -132,17 +133,17 @@ async fn wait_for_code(ls: &[TcpListener], state: &str) -> R<String> {
         let q: HashMap<String, String> = url.query_pairs().into_owned().collect();
         if let Some(code) = q.get("code") {
             if q.get("state").map(String::as_str) != Some(state) {
-                reply(sock, "400 Bad Request", "로그인 실패", "요청이 일치하지 않습니다. 런처에서 다시 시도하세요.", false).await;
-                return Err("로그인 응답이 일치하지 않습니다 (state). 다시 시도하세요.".into());
+                reply(sock, "400 Bad Request", &t("login.failTitle"), &t("login.mismatch"), false).await;
+                return Err(t("err.stateMismatch"));
             }
-            reply(sock, "200 OK", "로그인 완료", "이 창을 닫고 런처로 돌아가세요.", true).await;
+            reply(sock, "200 OK", &t("login.doneTitle"), &t("login.doneMsg"), true).await;
             return Ok(code.clone());
         }
         if let Some(e) = q.get("error") {
             let desc = q.get("error_description").cloned().unwrap_or_else(|| e.clone());
             let desc = desc.lines().next().unwrap_or(&desc).to_string();
-            reply(sock, "200 OK", "로그인 실패", &desc, false).await;
-            return Err(if e == "access_denied" { "Microsoft 로그인이 취소됐습니다".into() } else { desc });
+            reply(sock, "200 OK", &t("login.failTitle"), &desc, false).await;
+            return Err(if e == "access_denied" { t("err.msCancelled") } else { desc });
         }
         // favicon and other stray requests
         reply(sock, "404 Not Found", "LAVA LNCH", "", false).await;
@@ -155,7 +156,7 @@ pub async fn auth_ms_login(app: AppHandle) -> R<Settings> {
     let mut s = settings::load(&app);
     let client_id = s.client_id();
     if client_id.is_empty() {
-        return Err("Azure 앱 (client) ID를 먼저 입력하세요".into());
+        return Err(t("err.clientIdMissing"));
     }
     let (tx, mut cancel) = oneshot::channel();
     if let Some(old) = PENDING.lock().unwrap().replace(tx) {
@@ -184,8 +185,8 @@ pub async fn auth_ms_login(app: AppHandle) -> R<Settings> {
 
     let code = tokio::select! {
         r = wait_for_code(&listeners, &state) => r?,
-        _ = &mut cancel => return Err("로그인을 취소했습니다".into()),
-        _ = tokio::time::sleep(Duration::from_secs(300)) => return Err("로그인 시간이 초과됐습니다. 다시 시도하세요.".into()),
+        _ = &mut cancel => return Err(t("err.loginCancelled")),
+        _ = tokio::time::sleep(Duration::from_secs(300)) => return Err(t("err.loginTimeout")),
     };
     drop(listeners);
     PENDING.lock().unwrap().take();
@@ -207,7 +208,7 @@ pub async fn auth_ms_login(app: AppHandle) -> R<Settings> {
         .await
         .map_err(err)?;
     let Some(at) = v["access_token"].as_str() else {
-        let m = v["error_description"].as_str().unwrap_or("토큰을 받지 못했습니다");
+        let Some(m) = v["error_description"].as_str() else { return Err(t("err.noToken")) };
         return Err(m.lines().next().unwrap_or(m).to_string());
     };
     s.account = Some(login_chain(at, v["refresh_token"].as_str().unwrap_or("")).await?);
@@ -235,15 +236,15 @@ async fn post_json(url: &str, body: Value) -> R<Value> {
     if !status.is_success() {
         if let Some(x) = v["XErr"].as_u64() {
             let hint = match x {
-                2148916233 => "이 Microsoft 계정에는 Xbox 프로필이 없습니다. xbox.com에서 한 번 로그인해 프로필을 만드세요.",
-                2148916235 => "이 국가에서는 Xbox Live를 쓸 수 없습니다.",
-                2148916238 => "미성년자 계정은 가족 그룹에 추가해야 합니다.",
-                _ => "Xbox 로그인에 실패했습니다.",
+                2148916233 => t("err.xboxNoProfile"),
+                2148916235 => t("err.xboxRegion"),
+                2148916238 => t("err.xboxChild"),
+                _ => t("err.xboxFailed"),
             };
             return Err(format!("{hint} (XErr {x})"));
         }
         if url.contains("login_with_xbox") && status.as_u16() == 403 {
-            return Err("이 Azure 앱은 아직 Minecraft API 사용 승인을 받지 않았습니다. https://aka.ms/mce-reviewappid 에서 앱 ID 승인을 신청하세요.".into());
+            return Err(t("err.mcApiNotApproved"));
         }
         return Err(format!("{url} -> {status}"));
     }
@@ -261,7 +262,7 @@ pub async fn login_chain(ms_token: &str, refresh: &str) -> R<Account> {
         }),
     )
     .await?;
-    let xbl_token = xbl["Token"].as_str().ok_or("Xbox Live 토큰이 없습니다")?;
+    let xbl_token = xbl["Token"].as_str().ok_or_else(|| t("err.noXblToken"))?;
     let xsts = post_json(
         "https://xsts.auth.xboxlive.com/xsts/authorize",
         json!({
@@ -271,14 +272,14 @@ pub async fn login_chain(ms_token: &str, refresh: &str) -> R<Account> {
         }),
     )
     .await?;
-    let xsts_token = xsts["Token"].as_str().ok_or("XSTS 토큰이 없습니다")?;
-    let uhs = xsts["DisplayClaims"]["xui"][0]["uhs"].as_str().ok_or("XSTS uhs가 없습니다")?;
+    let xsts_token = xsts["Token"].as_str().ok_or_else(|| t("err.noXstsToken"))?;
+    let uhs = xsts["DisplayClaims"]["xui"][0]["uhs"].as_str().ok_or_else(|| t("err.noUhs"))?;
     let mc = post_json(
         "https://api.minecraftservices.com/authentication/login_with_xbox",
         json!({"identityToken": format!("XBL3.0 x={uhs};{xsts_token}")}),
     )
     .await?;
-    let token = mc["access_token"].as_str().ok_or("Minecraft 토큰이 없습니다")?.to_string();
+    let token = mc["access_token"].as_str().ok_or_else(|| t("err.noMcToken"))?.to_string();
     let expires = mc["expires_in"].as_u64().unwrap_or(3600);
     let prof = http()
         .get("https://api.minecraftservices.com/minecraft/profile")
@@ -287,7 +288,7 @@ pub async fn login_chain(ms_token: &str, refresh: &str) -> R<Account> {
         .await
         .map_err(err)?;
     if prof.status().as_u16() == 404 {
-        return Err("이 Microsoft 계정은 Minecraft: Java Edition을 갖고 있지 않습니다.".into());
+        return Err(t("err.noJavaEdition"));
     }
     let prof: Value = prof.error_for_status().map_err(err)?.json().await.map_err(err)?;
     Ok(Account {
@@ -354,7 +355,7 @@ mod tests {
 /// The logged-in account with a token that is valid for at least another minute.
 pub async fn fresh_account(app: &AppHandle) -> R<Account> {
     let mut s = settings::load(app);
-    let acc = s.account.clone().ok_or("먼저 로그인하세요")?;
+    let acc = s.account.clone().ok_or_else(|| t("err.loginFirst"))?;
     if acc.kind != "microsoft" || acc.expires_at > now() + 60 {
         return Ok(acc);
     }
@@ -373,7 +374,7 @@ pub async fn fresh_account(app: &AppHandle) -> R<Account> {
         .json()
         .await
         .map_err(err)?;
-    let at = v["access_token"].as_str().ok_or("로그인이 만료됐습니다. 다시 로그인하세요.")?;
+    let at = v["access_token"].as_str().ok_or_else(|| t("err.loginExpired"))?;
     let rt = v["refresh_token"].as_str().unwrap_or(&acc.refresh_token);
     let new = login_chain(at, rt).await?;
     s.account = Some(new.clone());

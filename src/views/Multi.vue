@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { api, type Instance } from '../api'
 import { background, guard, play, state } from '../store'
 import { creeperIcon } from '../pixel'
+import { t } from '../i18n'
 import ConnectCard from '../components/ConnectCard.vue'
 import PxIcon from '../components/PxIcon.vue'
 import ProgressLine from '../components/ProgressLine.vue'
@@ -35,7 +36,7 @@ function connect() {
 }
 async function remove() {
   const s = current.value
-  if (!s || !confirm(`"${s.title || s.server}" 서버와 받은 파일을 목록에서 삭제할까요?`)) return
+  if (!s || !confirm(t('multi.confirmDelete', { name: s.title || s.server }))) return
   await guard(() => api.deleteInstance(s.name))
   await refresh()
 }
@@ -48,7 +49,7 @@ async function remove() {
 
   <div v-else-if="current" class="multi">
     <div class="srv-list">
-      <div class="head"><h2 style="margin: 0">서버 목록</h2></div>
+      <div class="head"><h2 style="margin: 0">{{ t('multi.servers') }}</h2></div>
       <div class="srv-items">
         <button v-for="s in servers" :key="s.name" class="srv" :class="{ on: s.name === current.name }" @click="state.server = s.name">
           <img :src="icon(s)" alt="" @error="failedIcons.add(s.name)" />
@@ -57,7 +58,7 @@ async function remove() {
             <div class="a">{{ s.server }}</div>
           </div>
         </button>
-        <button class="btn srv-add" @click="adding = true"><PxIcon name="plus" :size="12" /> 서버 추가하기</button>
+        <button class="btn srv-add" @click="adding = true"><PxIcon name="plus" :size="12" /> {{ t('multi.addServer') }}</button>
       </div>
     </div>
 
@@ -77,15 +78,15 @@ async function remove() {
         <div class="play-panel">
           <div class="play-row">
             <div style="flex: 1; min-width: 0; padding: 4px 2px">
-              <div class="small muted">서버</div>
+              <div class="small muted">{{ t('multi.server') }}</div>
               <div class="pk-name" style="font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ current.title || current.server }}</div>
               <div>
                 <span class="tag cool">{{ current.mc }}</span>
                 <span v-if="current.loader === 'fabric'" class="tag cool">FABRIC</span>
               </div>
             </div>
-            <button class="btn icon-btn danger" title="서버 삭제" :disabled="busy" @click="remove"><PxIcon name="close" :size="12" /></button>
-            <button class="btn primary play-btn" :disabled="busy" @click="connect"><PxIcon name="play" :size="14" />{{ state.playing ? '실행 중' : 'PLAY' }}</button>
+            <button class="btn icon-btn danger" :title="t('multi.deleteServer')" :disabled="busy" @click="remove"><PxIcon name="close" :size="12" /></button>
+            <button class="btn primary play-btn" :disabled="busy" @click="connect"><PxIcon name="play" :size="14" />{{ state.playing ? t('common.running') : t('common.play') }}</button>
           </div>
           <ProgressLine />
         </div>

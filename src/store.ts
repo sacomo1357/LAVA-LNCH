@@ -2,6 +2,7 @@ import { reactive, watch } from 'vue'
 import { listen } from '@tauri-apps/api/event'
 import { api, inTauri, type Settings } from './api'
 import { defaultBackground } from './pixel'
+import { t } from './i18n'
 
 export type Tab = 'single' | 'multi' | 'skin' | 'setting'
 interface Toast { id: number; kind: 'info' | 'success' | 'error' | 'warn'; msg: string }
@@ -70,8 +71,8 @@ export async function initEvents() {
   })
   await listen<number | null>('game-exit', (e) => {
     state.playing = false
-    state.log.push(`[launcher] 게임 종료 (code ${e.payload ?? '?'})`)
-    if (e.payload) toast('warn', `마인크래프트가 code ${e.payload}로 종료됐습니다. 게임 로그를 확인하세요.`)
+    state.log.push(t('store.gameExitLog', { code: e.payload ?? '?' }))
+    if (e.payload) toast('warn', t('store.gameExitWarn', { code: e.payload }))
   })
   await listen<{ kind: Toast['kind']; msg: string }>('toast', (e) => toast(e.payload.kind, e.payload.msg))
 }
@@ -82,7 +83,7 @@ export async function play(start: () => Promise<number>) {
   state.playing = true
   const pid = await guard(start)
   if (pid === undefined) state.playing = false
-  else toast('success', '마인크래프트를 시작합니다')
+  else toast('success', t('store.starting'))
 }
 
 /** Read a picked/dropped file as a data URL. */
@@ -90,7 +91,7 @@ export function readDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader()
     r.onload = () => resolve(r.result as string)
-    r.onerror = () => reject('파일을 읽지 못했습니다')
+    r.onerror = () => reject(t('store.readFail'))
     r.readAsDataURL(file)
   })
 }

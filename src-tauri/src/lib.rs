@@ -1,4 +1,5 @@
 mod auth;
+mod i18n;
 mod instances;
 mod java;
 mod mc;
@@ -12,6 +13,7 @@ mod util;
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            i18n::set_lang,
             settings::get_settings,
             settings::save_settings,
             settings::open_folder,
@@ -47,5 +49,5 @@ pub fn run() {
             update::update_default_repo,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running LAVA SE Launcher");
+        .expect("error while running LAVA LNCH");
 }

@@ -125,11 +125,11 @@ pub fn bg_set(app: AppHandle, data_url: Option<String>) -> R<()> {
     let (head, b64) = u.split_once(',').ok_or("bad image")?;
     let mime = head.strip_prefix("data:").and_then(|h| h.strip_suffix(";base64")).ok_or("bad image")?;
     if !["image/png", "image/jpeg", "image/webp", "image/gif"].contains(&mime) {
-        return Err("PNG, JPG, WEBP, GIF 이미지만 쓸 수 있습니다".into());
+        return Err(t("err.bgType"));
     }
     let bytes = B64.decode(b64).map_err(err)?;
     if bytes.len() > 15 * 1024 * 1024 {
-        return Err("이미지는 15MB 이하여야 합니다".into());
+        return Err(t("err.bgSize"));
     }
     std::fs::write(d.join("background.bin"), bytes).map_err(err)?;
     std::fs::write(d.join("background.mime"), mime).map_err(err)
