@@ -1,7 +1,9 @@
-/* LAVA SE Launcher - pixel theme, tokens taken from the LAVA SE web panel. Galmuri fonts: OFL. */
+/* LAVA LNCH - pixel theme. Fonts: Galmuri (ko/en) and Fusion Pixel (cn/jp), both OFL - see public/fonts. */
 @font-face { font-family: 'Galmuri11'; src: url('/fonts/Galmuri11.woff2') format('woff2'); font-weight: 400; font-display: swap; }
 @font-face { font-family: 'Galmuri11'; src: url('/fonts/Galmuri11-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 @font-face { font-family: 'Galmuri9'; src: url('/fonts/Galmuri9.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Fusion Pixel SC'; src: url('/fonts/FusionPixel12-zh_hans.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Fusion Pixel JP'; src: url('/fonts/FusionPixel12-ja.woff2') format('woff2'); font-display: swap; }
 
 :root {
   --bg: #0f1115;
@@ -23,12 +25,16 @@
   --px: 3px;
   --blur: blur(8px) saturate(1.2);
   --font: 'Galmuri11', 'Noto Sans KR', system-ui, sans-serif;
+  --font-sm: 'Galmuri9', var(--font);
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   /* 4-sided outline without corners = notched pixel border */
   --pixel-border: 0 calc(-1 * var(--px)) 0 0 var(--line), 0 var(--px) 0 0 var(--line),
     calc(-1 * var(--px)) 0 0 0 var(--line), var(--px) 0 0 0 var(--line);
   color-scheme: dark;
 }
+/* Galmuri has no Chinese and only part of Japanese: Fusion Pixel (OFL, built on Galmuri) takes over there */
+:root:lang(zh) { --font: 'Fusion Pixel SC', 'Galmuri11', sans-serif; --font-sm: var(--font); }
+:root:lang(ja) { --font: 'Fusion Pixel JP', 'Galmuri11', sans-serif; --font-sm: var(--font); }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -65,7 +71,7 @@ h3 { font-size: 12px; color: var(--accent-2); text-transform: uppercase; letter-
 h3::before { content: '??'; color: var(--accent); }
 code, .mono { font-family: var(--mono); font-size: 12px; }
 .muted { color: var(--muted); }
-.small { font: 10px/1.6 'Galmuri9', var(--font); }
+.small { font: 10px/1.6 var(--font-sm); }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .spacer { flex: 1; }
 .grid { display: grid; gap: 18px; }
@@ -113,7 +119,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 28px 24px 48px; }
 /* ---------- forms ---------- */
 label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .field { margin-bottom: 16px; }
-.field .hint { font: 10px/1.6 'Galmuri9', var(--font); color: var(--muted); margin-top: 6px; }
+.field .hint { font: 10px/1.6 var(--font-sm); color: var(--muted); margin-top: 6px; }
 input, select, textarea {
   width: 100%;
   background: rgba(10, 11, 14, .65);
